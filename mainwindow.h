@@ -3,6 +3,8 @@
 
 #include <QMainWindow>
 
+class Board;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -10,5 +12,15 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+
+protected:
+
+private slots:
+
+private:
+
+    Board *board;
+
+
 };
 #endif // MAINWINDOW_H

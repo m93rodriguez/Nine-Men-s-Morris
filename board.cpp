@@ -6,22 +6,64 @@
 
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPointF>
+#include <QImage>
+#include <QPainterPath>
+#include <QColor>
 
 #include <QFileDialog>
-
 
 #include <QDebug>
 #include <locale>
 
 Board::Board(QWidget *parent)
-    : QWidget{parent}, image(500,500, QImage::Format_RGB32)
+    : QWidget{parent}, boardSize(QSize(500,500)), imageOffset(QPoint(0,0))
 {
-    image.fill(qRgb(200, 120, 200));
+    std::setlocale(LC_NUMERIC, "en_US.UTF-8");
+
     //QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), QDir::currentPath());
     QString fileName = "/home/martin/Projects/Nine-Men-s-Morris/Board_Config/Classic_Nine_Men_Morris_corrected.txt";
-    std::setlocale(LC_NUMERIC, "en_US.UTF-8");
+
     get_pieces_nodes_edges_from_file(fileName.toStdString());
-    qDebug() << edges[10];
+    setMinimumSize(boardSize);
+}
+
+void Board::drawBoard()
+{
+    image.fill(qRgb(200, 200, 120));
+    QPainter painter(&image);
+    QList<QPoint>::iterator space;
+    QPainterPath circles;
+    QColor myPenColor = Qt::blue;
+    int myPenWidth = 4;
+    int spaceRadius = 10;
+
+    painter.setPen(QPen(myPenColor, myPenWidth, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+
+    for (space = pixelSpaces.begin(); space != pixelSpaces.end(); space++){
+        circles.addEllipse(*space, spaceRadius, spaceRadius);
+        //painter.drawPoint(*space * 500);
+    }
+    painter.fillPath(circles, Qt::blue);
+
+    for (int edge = 0; edge < edges.size(); edge++){
+        painter.drawLine(pixelSpaces[edges[edge][0]], pixelSpaces[edges[edge][1]]);
+    }
+}
+
+void Board::resizeNodes(int factor_x, int factor_y)
+{
+    if (pixelSpaces.isEmpty()){
+        for (size_t ind = 0; ind < relativeSpaces.size(); ind++){
+            pixelSpaces.append(QPoint(0,0));
+        }
+    }
+
+    for (size_t ind = 0 ; ind < relativeSpaces.size(); ind++){
+        pixelSpaces[ind].setX( static_cast<int>(relativeSpaces[ind].x()*factor_x + imageOffset.x()));
+        pixelSpaces[ind].setY( static_cast<int>(relativeSpaces[ind].y()*factor_y + imageOffset.y()));
+    }
+
 }
 
 void Board::paintEvent(QPaintEvent *event)
@@ -29,6 +71,24 @@ void Board::paintEvent(QPaintEvent *event)
     QPainter painter(this);
     QRect dirtyRect = event->rect();
     painter.drawImage(dirtyRect, image, dirtyRect);
+}
+
+void Board::resizeEvent(QResizeEvent *event)
+{
+    const QSize newSize = event->size();
+    image = QImage(newSize, QImage::Format_RGB32);
+    const int scaleFactor = qMin(newSize.width(), newSize.height());
+    boardSize.setWidth(scaleFactor);
+    boardSize.setHeight(scaleFactor);
+
+    imageOffset = QPoint((newSize.width() - boardSize.width())/2,
+                          (newSize.height() - boardSize.height())/2);
+
+    resizeNodes(scaleFactor, scaleFactor);
+
+    drawBoard();
+
+    QWidget::resizeEvent(event);
 }
 
 void Board::get_pieces_nodes_edges_from_file(const std::string file_dir)
@@ -45,7 +105,7 @@ void Board::get_pieces_nodes_edges_from_file(const std::string file_dir)
     while (std::getline(stream, line))
     {
         if (edge_list){
-            edges.append(extract_edge_coordinates(line));
+            edges.append(extract_edges(line));
         }
         if (node_list){
             if (line.find("EDGES") != std::string::npos){
@@ -53,7 +113,7 @@ void Board::get_pieces_nodes_edges_from_file(const std::string file_dir)
                 edge_list = true;
                 continue;
             }
-            spaces.append(extract_node_coordinates(line));
+            relativeSpaces.append(extract_coordinates(line));
         }
 
         if (extract_player_pieces(line, "BLACK_PIECES", num_black_pieces)) continue;
@@ -66,26 +126,26 @@ void Board::get_pieces_nodes_edges_from_file(const std::string file_dir)
     }
 }
 
-QList<float> Board::extract_node_coordinates(const std::string line)
+QPointF Board::extract_coordinates(const std::string line)
 {
     const std::size_t index1 = line.find(',');
     const std::size_t index2 = line.find(',', index1 + 1);
-    QList<float> coordinates;
-    coordinates.append(std::stof(line.substr(index1+1, index2-index1-1)));
-    coordinates.append(std::stof(line.substr(index2+1)));
 
-    return coordinates;
+    const float x = std::stof(line.substr(index1+1, index2-index1-1));
+    const float y = std::stof(line.substr(index2+1));
+
+    return QPointF(x, y);
 }
 
-QList<int> Board::extract_edge_coordinates(const std::string line)
+QList<int> Board::extract_edges(const std::string line)
 {
     const std::size_t index1 = line.find(',');
     const std::size_t index2 = line.find(',', index1 + 1);
-    QList<int> coordinates;
-    coordinates.append(std::stoi(line.substr(index1+1, index2-index1-1)));
-    coordinates.append(std::stoi(line.substr(index2+1)));
+    QList<int> node_list;
+    node_list.append(std::stoi(line.substr(index1+1, index2-index1-1)));
+    node_list.append(std::stoi(line.substr(index2+1)));
 
-    return coordinates;
+    return node_list;
 }
 
 bool Board::extract_player_pieces(const std::string& line, const std::string& key, int& num_pieces)

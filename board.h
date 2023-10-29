@@ -7,6 +7,7 @@
 #include <QWidget>
 #include <QImage>
 #include <QList>
+#include <QPointF>
 
 class Board : public QWidget
 {
@@ -16,10 +17,14 @@ public:
 
 protected:
     void paintEvent(QPaintEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
 
 private:
+    QSize boardSize;
+    QPoint imageOffset;
     QImage image;
-    QList<QList<float>> spaces;
+    QList<QPointF> relativeSpaces;
+    QList<QPoint> pixelSpaces;
     QList<QList<int>> edges;
     int num_black_pieces;
     int num_white_pieces;
@@ -27,8 +32,10 @@ private:
     void drawBoard();
     void get_pieces_nodes_edges_from_file(const std::string file_dir);
     bool extract_player_pieces(const std::string& line, const std::string& key, int& num_pieces);
-    QList<float> extract_node_coordinates(const std::string line);
-    QList<int> extract_edge_coordinates(const std::string line);
+    QPointF extract_coordinates(const std::string line);
+    QList<int> extract_edges(const std::string line);
+    void resizeNodes(int factor_x, int factor_y);
 };
+
 
 #endif // BOARD_H

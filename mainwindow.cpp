@@ -4,8 +4,7 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
-    //resize(1500, 900);
-    board = new Board;
+    board = new Board(this);
     setCentralWidget(board);
 }
 

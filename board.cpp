@@ -1,4 +1,5 @@
 #include "board.h"
+#include "piece.h"
 
 #include <string>
 #include <fstream>
@@ -17,7 +18,7 @@
 #include <locale>
 
 Board::Board(QWidget *parent)
-    : QWidget{parent}, boardSize(QSize(500,500)), imageOffset(QPoint(0,0))
+    : QWidget{parent}, boardSize(QSize(500,500)), imageOffset(QPoint(0,0)), movingPiece(nullptr)
 {
     std::setlocale(LC_NUMERIC, "en_US.UTF-8");
 
@@ -26,6 +27,14 @@ Board::Board(QWidget *parent)
 
     get_pieces_nodes_edges_from_file(fileName.toStdString());
     setMinimumSize(boardSize);
+
+    piece = new Piece(this);
+
+}
+
+void Board::mousePressEvent(QMouseEvent* event)
+{
+    qDebug() << "Board";
 }
 
 void Board::drawBoard()
@@ -42,7 +51,6 @@ void Board::drawBoard()
 
     for (space = pixelSpaces.begin(); space != pixelSpaces.end(); space++){
         circles.addEllipse(*space, spaceRadius, spaceRadius);
-        //painter.drawPoint(*space * 500);
     }
     painter.fillPath(circles, Qt::blue);
 
@@ -57,6 +65,7 @@ void Board::resizeNodes(int factor_x, int factor_y)
         for (size_t ind = 0; ind < relativeSpaces.size(); ind++){
             pixelSpaces.append(QPoint(0,0));
         }
+        piece->movePiece(QPoint(200, 200));
     }
 
     for (size_t ind = 0 ; ind < relativeSpaces.size(); ind++){
@@ -78,6 +87,7 @@ void Board::resizeEvent(QResizeEvent *event)
     const QSize newSize = event->size();
     image = QImage(newSize, QImage::Format_RGB32);
     const int scaleFactor = qMin(newSize.width(), newSize.height());
+
     boardSize.setWidth(scaleFactor);
     boardSize.setHeight(scaleFactor);
 
@@ -86,6 +96,7 @@ void Board::resizeEvent(QResizeEvent *event)
 
     resizeNodes(scaleFactor, scaleFactor);
 
+    emit isResized(scaleFactor, scaleFactor);
     drawBoard();
 
     QWidget::resizeEvent(event);
@@ -160,4 +171,17 @@ bool Board::extract_player_pieces(const std::string& line, const std::string& ke
     }
     return false;
 }
+
+void Board::pickUpPiece(Piece* pickedPiece)
+{
+    movingPiece = pickedPiece;
+
+}
+
+void Board::mouseMoveEvent(QMouseEvent *event)
+{
+    if (movingPiece)
+        movingPiece->movePiece(event->pos());
+}
+
 

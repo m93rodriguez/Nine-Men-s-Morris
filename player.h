@@ -3,19 +3,34 @@
 
 #include <QList>
 #include <QColor>
+#include <QObject>
 
-class Boad;
+class Board;
 class Piece;
 
-class Player
+class Player : public QObject
 {
+    Q_OBJECT
+
 public:
-    Player();
+    Player(const int numPieces, const QColor color, Board* owner);
+
+    bool isPlaying() const {return playing;}
+
+public slots:
+    void startTurn();
+    void finishMoving();
+
+signals:
+    void endTurn();
 
 private:
+    Board* board;
     QList<Piece*> pieces;
     QColor pieceColor;
-    int numPieces;
+    int maxPieces;
+    int placedPieces;
+    bool playing;
 
 };
 

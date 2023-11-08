@@ -1,5 +1,6 @@
 ﻿#include "piece.h"
 #include "board.h"
+#include "player.h"
 
 #include <QObject>
 #include <QPixmap>
@@ -23,14 +24,19 @@ QPointF operator/(const QPoint absPoint, const QSize box)
 }
 
 
-Piece::Piece(Board *parent)
-    : QWidget{parent}, relativeBoardPosition(QPointF(0.5, 0.5)), board(parent)
+Piece::Piece(Player* owner, const QColor pieceColor, Board *parent)
+    : QWidget{parent}, relativeBoardPosition(QPointF(0.5, 0.5)), board(parent), player(owner)
 {
-    visual = createPixmap(50, QColor(0, 0, 0, 255));
+    visual = createPixmap(50, pieceColor);
     setFixedSize(50, 50);
+    resizePiecePosition();
 
     connect(this, &Piece::getsPickedUp, parent, &Board::pickUpPiece);
     connect(parent, &Board::isResized, this, &Piece::resizePiecePosition);
+
+    connect(this, &Piece::placedInSpace, parent, &Board::fillSpace);
+
+    show();
 }
 
 QPixmap Piece::createPixmap(int size, QColor color)
@@ -59,18 +65,22 @@ void Piece::movePiece(QPoint newPosition)
     move(newPosition - centerPoint);
 }
 
-void Piece::resizePiecePosition(const int factor_x, const int factor_y)
+void Piece::resizePiecePosition()
 {
+    const int factor = qMin(board->width(), board->height());
     QPointF newPosition(relativeBoardPosition);
-    newPosition.rx() *= factor_x;
-    newPosition.ry() *= factor_y;
+    newPosition.rx() *= factor;
+    newPosition.ry() *= factor;
     movePiece(newPosition.toPoint() + board->get_boardOffset());
 }
 
 void Piece::mousePressEvent(QMouseEvent* event)
 {
-    qDebug() << "Piece";
-    emit getsPickedUp(this);
+    if (player->isPlaying()){
+        oldPosition = centerPos();
+        picked = true;
+        emit getsPickedUp(this);
+    }
 }
 
 void Piece::mouseMoveEvent(QMouseEvent* event)
@@ -80,7 +90,37 @@ void Piece::mouseMoveEvent(QMouseEvent* event)
 
 void Piece::mouseReleaseEvent(QMouseEvent* event)
 {
-    QPoint centerPoint = QPoint(size().width()/2, size().height()/2);
-    relativeBoardPosition = (pos() + centerPoint - board->get_boardOffset())/board->get_boardSize();
+    if (!picked) return;
+    picked = false;
+
+    QPoint targetPosition(QPoint(0,0));
+    //QList<QPoint>::const_iterator space;
+    const QList<QPoint> &spaces = board->get_spacePositions();
+
+    for (size_t spaceInd = 0; spaceInd < spaces.size(); spaceInd++){
+        if ((spaces.at(spaceInd) - centerPos()).manhattanLength() < width()){
+
+            if (board->pieceInSpace(spaceInd))
+                break;
+
+            movePiece(spaces.at(spaceInd));
+            oldPosition = spaces.at(spaceInd);
+            spaceIndex = spaceInd;
+
+            relativeBoardPosition = (spaces[spaceInd] - board->get_boardOffset())/board->get_boardSize();
+
+            emit placedInSpace(this, spaceIndex);
+            return;
+
+        }
+    }
+
+    movePiece(oldPosition);
+
     qDebug() << "PieceReleases";
+}
+
+const QPoint Piece::centerPos() const
+{
+    return pos() + QPoint(size().width()/2, size().height()/2);
 }

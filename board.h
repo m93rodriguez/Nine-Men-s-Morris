@@ -11,6 +11,7 @@
 #include <QSize>
 
 class Piece;
+class Player;
 
 class Board : public QWidget
 {
@@ -20,17 +21,21 @@ public:
 
     QPoint get_boardOffset() const {return imageOffset;}
     QSize get_boardSize() const {return boardSize;}
+    QList<QPoint> get_spacePositions() const {return pixelSpaces;}
+    Piece* pieceInSpace(size_t ind) const;
 
 protected:
     void paintEvent(QPaintEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
-    //void mouseReleaseEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
 
 
 public slots:
     void pickUpPiece(Piece* pickedPiece);
+    void fillSpace(Piece* piece, size_t spaceInd);
+    void releasePiece();
 
 signals:
     void isResized(const int factor_x, const int factor_y);
@@ -42,9 +47,10 @@ private:
     QList<QPointF> relativeSpaces;
     QList<QPoint> pixelSpaces;
     QList<QList<int>> edges;
+    QList<Piece*> spacePieces;
     int num_black_pieces;
     int num_white_pieces;
-    Piece* piece;
+    Player* player[2];
     Piece* movingPiece;
 
     void drawBoard();

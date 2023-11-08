@@ -9,14 +9,16 @@
 #include <QColor>
 
 class Board;
+class Player;
 
 class Piece : public QWidget
 {
     Q_OBJECT
 public:
-    explicit Piece(Board *parent = nullptr);
+    explicit Piece(Player* owner, const QColor pieceColor, Board *parent = nullptr);
 
     void movePiece(QPoint newPosition);
+    const QPoint centerPos() const;
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
@@ -30,15 +32,19 @@ private:
     QPoint oldPosition;
     QPointF relativeBoardPosition;
     Board* board;
+    bool picked;
+    size_t spaceIndex;
+    Player* player;
 
     bool isValidPosition(QPoint targetPosition);
     QPixmap createPixmap(int size, QColor color);
 
 public slots:
-    void resizePiecePosition(int factor_x, int factor_y);
+    void resizePiecePosition();
 
 signals:
     void getsPickedUp(Piece* piece);
+    void placedInSpace(Piece* piece, size_t spaceInd);
 
 };
 

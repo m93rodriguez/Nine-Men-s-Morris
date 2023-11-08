@@ -1,5 +1,6 @@
 #include "board.h"
 #include "piece.h"
+#include "player.h"
 
 #include <string>
 #include <fstream>
@@ -11,11 +12,13 @@
 #include <QImage>
 #include <QPainterPath>
 #include <QColor>
+#include <QList>
 
 #include <QFileDialog>
 
 #include <QDebug>
 #include <locale>
+
 
 Board::Board(QWidget *parent)
     : QWidget{parent}, boardSize(QSize(500,500)), imageOffset(QPoint(0,0)), movingPiece(nullptr)
@@ -26,10 +29,16 @@ Board::Board(QWidget *parent)
     QString fileName = "/home/martin/Projects/Nine-Men-s-Morris/Board_Config/Classic_Nine_Men_Morris_corrected.txt";
 
     get_pieces_nodes_edges_from_file(fileName.toStdString());
+    spacePieces = QList<Piece*>(relativeSpaces.size(), nullptr);
     setMinimumSize(boardSize);
 
-    piece = new Piece(this);
+    player[0] = new Player(num_black_pieces, QColor(0, 0, 0), this);
+    player[1] = new Player(num_white_pieces, QColor(255, 255, 255), this);
 
+    connect(player[0], &Player::endTurn, player[1], &Player::startTurn);
+    connect(player[1], &Player::endTurn, player[0], &Player::startTurn);
+
+    player[1]->startTurn();
 }
 
 void Board::mousePressEvent(QMouseEvent* event)
@@ -65,7 +74,6 @@ void Board::resizeNodes(int factor_x, int factor_y)
         for (size_t ind = 0; ind < relativeSpaces.size(); ind++){
             pixelSpaces.append(QPoint(0,0));
         }
-        piece->movePiece(QPoint(200, 200));
     }
 
     for (size_t ind = 0 ; ind < relativeSpaces.size(); ind++){
@@ -95,11 +103,10 @@ void Board::resizeEvent(QResizeEvent *event)
                           (newSize.height() - boardSize.height())/2);
 
     resizeNodes(scaleFactor, scaleFactor);
-
-    emit isResized(scaleFactor, scaleFactor);
     drawBoard();
 
     QWidget::resizeEvent(event);
+    emit isResized(scaleFactor, scaleFactor);
 }
 
 void Board::get_pieces_nodes_edges_from_file(const std::string file_dir)
@@ -128,7 +135,7 @@ void Board::get_pieces_nodes_edges_from_file(const std::string file_dir)
         }
 
         if (extract_player_pieces(line, "BLACK_PIECES", num_black_pieces)) continue;
-        if (extract_player_pieces(line, "WHITE_PIECES", num_black_pieces)) continue;
+        if (extract_player_pieces(line, "WHITE_PIECES", num_white_pieces)) continue;
         if (line.find("SPACES") != std::string::npos){
             node_list = true;
             continue;
@@ -178,10 +185,30 @@ void Board::pickUpPiece(Piece* pickedPiece)
 
 }
 
+void Board::fillSpace(Piece* piece, const size_t spaceInd)
+{
+    spacePieces[spaceInd] = piece;
+}
+
+Piece* Board::pieceInSpace(size_t ind) const
+{
+    if ((ind < 0) || (ind >= spacePieces.size())) {return nullptr;}
+
+    return spacePieces.at(ind);
+}
+
 void Board::mouseMoveEvent(QMouseEvent *event)
 {
     if (movingPiece)
         movingPiece->movePiece(event->pos());
 }
 
+void Board::mouseReleaseEvent(QMouseEvent *event)
+{
 
+}
+
+void Board::releasePiece()
+{
+    movingPiece = nullptr;
+}

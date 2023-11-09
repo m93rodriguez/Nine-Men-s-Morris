@@ -38,7 +38,13 @@ Board::Board(QWidget *parent)
     connect(player[0], &Player::endTurn, player[1], &Player::startTurn);
     connect(player[1], &Player::endTurn, player[0], &Player::startTurn);
 
-    player[1]->startTurn();
+    connect(player[0], &Player::eliminationStarts, player[1], &Player::becomesAttacked);
+    connect(player[1], &Player::eliminationStarts, player[0], &Player::becomesAttacked);
+
+    connect(player[0], &Player::pieceRemoved, player[1], &Player::finishElimination);
+    connect(player[1], &Player::pieceRemoved, player[0], &Player::finishElimination);
+
+    player[0]->startTurn();
 }
 
 void Board::mousePressEvent(QMouseEvent* event)
@@ -187,7 +193,14 @@ void Board::pickUpPiece(Piece* pickedPiece)
 
 void Board::fillSpace(Piece* piece, const size_t spaceInd)
 {
+    const qsizetype oldInd = spacePieces.indexOf(piece);
+    if (oldInd != -1)
+    {
+        spacePieces[oldInd] = nullptr;
+    }
     spacePieces[spaceInd] = piece;
+
+    releasePiece();
 }
 
 Piece* Board::pieceInSpace(size_t ind) const
@@ -208,7 +221,22 @@ void Board::mouseReleaseEvent(QMouseEvent *event)
 
 }
 
+QPoint Board::getSpacePoint(size_t spaceInd) const
+{
+    if ((spaceInd < 0) || spaceInd >= pixelSpaces.size()) return QPoint(0,0);
+    return pixelSpaces[spaceInd];
+
+}
+
 void Board::releasePiece()
 {
     movingPiece = nullptr;
+}
+
+void Board::removePiece(Piece* removedPiece, size_t spaceInd)
+{
+    qDebug() << "Start Piece removal in Board";
+    if (spacePieces[spaceInd] == removedPiece)
+        spacePieces[spaceInd] = nullptr;
+    qDebug() << "Ended Piece removal in Board";
 }

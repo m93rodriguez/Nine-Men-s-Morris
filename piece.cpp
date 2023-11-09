@@ -25,16 +25,22 @@ QPointF operator/(const QPoint absPoint, const QSize box)
 
 
 Piece::Piece(Player* owner, const QColor pieceColor, Board *parent)
-    : QWidget{parent}, relativeBoardPosition(QPointF(0.5, 0.5)), board(parent), player(owner)
+    : QWidget{parent}, relativeBoardPosition(QPointF(0.5, 0.5)), board(parent), player(owner),
+    spaceIndex(-1), firstTurn(true), numTriplets(0)
 {
     visual = createPixmap(50, pieceColor);
     setFixedSize(50, 50);
     resizePiecePosition();
 
     connect(this, &Piece::getsPickedUp, parent, &Board::pickUpPiece);
+
     connect(parent, &Board::isResized, this, &Piece::resizePiecePosition);
 
-    connect(this, &Piece::placedInSpace, parent, &Board::fillSpace);
+    connect(this, &Piece::placedInSpace, board, &Board::fillSpace);
+    connect(this, &Piece::placedInSpace, player, &Player::finishMoving);
+    connect(this, &Piece::returnedToSpace, board, &Board::releasePiece);
+
+    connect(this, &Piece::getsEliminated, player, &Player::eliminatePiece);
 
     show();
 }
@@ -80,6 +86,12 @@ void Piece::mousePressEvent(QMouseEvent* event)
         oldPosition = centerPos();
         picked = true;
         emit getsPickedUp(this);
+        return;
+    }
+
+    if (player->isAttacked()){
+        if (numTriplets > 0) return;
+        emit getsEliminated(this, spaceIndex);
     }
 }
 
@@ -94,13 +106,15 @@ void Piece::mouseReleaseEvent(QMouseEvent* event)
     picked = false;
 
     QPoint targetPosition(QPoint(0,0));
-    //QList<QPoint>::const_iterator space;
+
     const QList<QPoint> &spaces = board->get_spacePositions();
 
     for (size_t spaceInd = 0; spaceInd < spaces.size(); spaceInd++){
         if ((spaces.at(spaceInd) - centerPos()).manhattanLength() < width()){
 
             if (board->pieceInSpace(spaceInd))
+                break;
+            if (!player->moveIsAllowed(this, spaceInd, spaceIndex))
                 break;
 
             movePiece(spaces.at(spaceInd));
@@ -110,14 +124,16 @@ void Piece::mouseReleaseEvent(QMouseEvent* event)
             relativeBoardPosition = (spaces[spaceInd] - board->get_boardOffset())/board->get_boardSize();
 
             emit placedInSpace(this, spaceIndex);
+            firstTurn = false;
             return;
 
         }
     }
 
     movePiece(oldPosition);
+    emit returnedToSpace(this, spaceIndex);
 
-    qDebug() << "PieceReleases";
+    qDebug() << "Illegal move, Piece returned";
 }
 
 const QPoint Piece::centerPos() const

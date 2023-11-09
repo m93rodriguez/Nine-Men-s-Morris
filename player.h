@@ -16,13 +16,21 @@ public:
     Player(const int numPieces, const QColor color, Board* owner);
 
     bool isPlaying() const {return playing;}
+    bool isAttacked() const {return underAttack;}
+    bool moveIsAllowed(const Piece* piece, const size_t newSpaceInd, const size_t oldSpaceInd);
 
 public slots:
     void startTurn();
-    void finishMoving();
+    void finishMoving(Piece* movedPiece);
+    void becomesAttacked();
+    void eliminatePiece(Piece* eliminatedPiece, size_t spaceInd);
+    void finishElimination();
+
 
 signals:
     void endTurn();
+    void eliminationStarts();
+    void pieceRemoved(Piece* removedPiece, size_t spaceInd);
 
 private:
     Board* board;
@@ -30,8 +38,14 @@ private:
     QColor pieceColor;
     int maxPieces;
     int placedPieces;
+    int currentPieces;
     bool playing;
+    bool freeMoves;
+    bool firstPhase;
+    bool underAttack;
+    QList<QList<Piece*>> triplets;
 
+    bool checkNewTriplet(Piece *movedPiece);
 };
 
 #endif // PLAYER_H

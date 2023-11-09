@@ -20,6 +20,13 @@ public:
     void movePiece(QPoint newPosition);
     const QPoint centerPos() const;
 
+    bool isFirstTurn() const {return firstTurn;}
+    size_t getSpaceIndex() const {return spaceIndex;}
+    Player* getPlayer() const {return player;}
+
+    void addToTriplet() {numTriplets++;}
+    void removeFromTriple() {numTriplets--;}
+
 protected:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
@@ -35,6 +42,8 @@ private:
     bool picked;
     size_t spaceIndex;
     Player* player;
+    bool firstTurn;
+    int numTriplets;
 
     bool isValidPosition(QPoint targetPosition);
     QPixmap createPixmap(int size, QColor color);
@@ -45,6 +54,8 @@ public slots:
 signals:
     void getsPickedUp(Piece* piece);
     void placedInSpace(Piece* piece, size_t spaceInd);
+    void returnedToSpace(Piece* piece, size_t spaceInd);
+    void getsEliminated(Piece* piece, size_t spaceInd);
 
 };
 

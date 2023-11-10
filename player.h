@@ -18,6 +18,7 @@ public:
     bool isPlaying() const {return playing;}
     bool isAttacked() const {return underAttack;}
     bool moveIsAllowed(const Piece* piece, const size_t newSpaceInd, const size_t oldSpaceInd);
+    bool hasAllTriplets() const {return allPiecesProtected;}
 
 public slots:
     void startTurn();
@@ -43,6 +44,7 @@ private:
     bool freeMoves;
     bool firstPhase;
     bool underAttack;
+    bool allPiecesProtected;
     QList<QList<Piece*>> triplets;
 
     bool checkNewTriplet(Piece *movedPiece);

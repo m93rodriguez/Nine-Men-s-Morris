@@ -90,7 +90,7 @@ void Piece::mousePressEvent(QMouseEvent* event)
     }
 
     if (player->isAttacked()){
-        if (numTriplets > 0) return;
+        if ((numTriplets > 0) && (!player->hasAllTriplets())) return;
         emit getsEliminated(this, spaceIndex);
     }
 }

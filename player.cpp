@@ -6,7 +6,8 @@
 
 Player::Player(int numPieces, QColor color, Board* owner)
     : QObject(owner), pieceColor(color), maxPieces(numPieces), placedPieces(0), board(owner),
-    playing(true), firstPhase(true), currentPieces(0), underAttack(false)
+    playing(true), firstPhase(true), currentPieces(0), underAttack(false),
+    allPiecesProtected(false)
 {
     connect(this, &Player::pieceRemoved, board, &Board::removePiece);
 }
@@ -16,6 +17,7 @@ void Player::startTurn()
     playing = true;
     freeMoves = false;
     underAttack = false;
+    allPiecesProtected = false;
 
     if (placedPieces == maxPieces)
         firstPhase = false;
@@ -32,6 +34,10 @@ void Player::startTurn()
         return;
     }
 
+    if (currentPieces <= 3){
+        freeMoves = true;
+    }
+
 }
 
 void Player::eliminatePiece(Piece* eliminatedPiece, size_t spaceInd)
@@ -39,8 +45,11 @@ void Player::eliminatePiece(Piece* eliminatedPiece, size_t spaceInd)
     qDebug() << "Start Piece removal in Player";
     size_t pieceId = pieces.indexOf(eliminatedPiece);
     pieces.remove(pieceId);
+
     if (triplets.size() > 0){
-        for (size_t ind = triplets.size() - 1; ind >= 0; ind--){
+        qDebug() << "Num triplets: " << triplets.size();
+        for (int ind = triplets.size() - 1; ind >= 0; ind--){
+            qDebug() << ind;
             if (!triplets[ind].contains(eliminatedPiece)) continue;
             for (size_t piece = 0; piece < 3; piece++){
                 if (triplets[ind][piece] == eliminatedPiece) continue;
@@ -51,6 +60,7 @@ void Player::eliminatePiece(Piece* eliminatedPiece, size_t spaceInd)
         }
     }
     emit pieceRemoved(eliminatedPiece, spaceInd);
+    currentPieces--;
     delete eliminatedPiece;
     qDebug() << "Ended Piece removal un Player";
 
@@ -78,6 +88,17 @@ bool Player::moveIsAllowed(const Piece* piece, const size_t newSpaceInd, const s
 
 void Player::finishMoving(Piece* movedPiece)
 {
+    if (triplets.size() > 0) {
+        int trip = triplets.size();
+        while (movedPiece->numberTriplets() > 0){
+            trip--;
+            if (!triplets[trip].contains(movedPiece)) continue;
+            for (int ind = 0; ind < triplets[trip].size(); ind++){
+                triplets[trip][ind]->removeFromTriple();
+            }
+        }
+    }
+
     if (checkNewTriplet(movedPiece)){
         emit eliminationStarts();
         return;
@@ -90,6 +111,14 @@ void Player::finishMoving(Piece* movedPiece)
 void Player::finishElimination()
 {
     playing = false;
+    allPiecesProtected = true;
+    for (int ind = 0; ind < pieces.size(); ind++){
+        if (pieces[ind]->numberTriplets() == 0){
+            allPiecesProtected = false;
+            break;
+        }
+    }
+
     emit endTurn();
 }
 
@@ -118,7 +147,11 @@ bool Player::checkNewTriplet(Piece *movedPiece)
         for (size_t edge2 = 0; edge2 < edges.size(); edge2++){
             if (edge2 == edge1) continue;
             size_t k = edges[edge2].indexOf(secondPiece->getSpaceIndex());
-            if (k == -1) continue;
+            if (k == -1) {
+                k = edges[edge2].indexOf(movedPiece->getSpaceIndex());
+            }
+            if (k==-1) continue;
+
             Piece* thirdPiece = board->pieceInSpace(edges[edge2][(k+1)%2]);
 
             if (!thirdPiece) continue;
@@ -133,10 +166,10 @@ bool Player::checkNewTriplet(Piece *movedPiece)
             collinearity += P3.x()*(P1.y() - P2.y());
 
             if (!collinearity){
+                QList<Piece*> newTriplet = {movedPiece, secondPiece, thirdPiece};
                 movedPiece->addToTriplet();
                 secondPiece->addToTriplet();
                 thirdPiece->addToTriplet();
-                QList<Piece*> newTriplet = {movedPiece, secondPiece, thirdPiece};
                 triplets.append(newTriplet);
 
                 ret = true;

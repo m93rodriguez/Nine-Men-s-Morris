@@ -23,9 +23,10 @@ public:
     bool isFirstTurn() const {return firstTurn;}
     size_t getSpaceIndex() const {return spaceIndex;}
     Player* getPlayer() const {return player;}
+    int numberTriplets() const {return numTriplets;}
 
     void addToTriplet() {numTriplets++;}
-    void removeFromTriple() {numTriplets--;}
+    void removeFromTriple() {if (numTriplets > 0) numTriplets--;}
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;

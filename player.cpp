@@ -7,7 +7,7 @@
 Player::Player(int numPieces, QColor color, Board* owner)
     : QObject(owner), pieceColor(color), maxPieces(numPieces), placedPieces(0), board(owner),
     playing(true), firstPhase(true), currentPieces(0), underAttack(false),
-    allPiecesProtected(false)
+    allPiecesProtected(false), attacking(false)
 {
     connect(this, &Player::pieceRemoved, board, &Board::removePiece);
 }
@@ -34,7 +34,10 @@ void Player::startTurn()
         return;
     }
 
+    qDebug() << currentPieces;
+
     if (currentPieces <= 3){
+        qDebug() << "Less than 3 pieces";
         freeMoves = true;
     }
 
@@ -46,6 +49,10 @@ void Player::eliminatePiece(Piece* eliminatedPiece, size_t spaceInd)
     size_t pieceId = pieces.indexOf(eliminatedPiece);
     pieces.remove(pieceId);
 
+    for (int ind = 0; ind < pieces.size(); ind++){
+        pieces[ind]->removeAura();
+    }
+
     if (triplets.size() > 0){
         qDebug() << "Num triplets: " << triplets.size();
         for (int ind = triplets.size() - 1; ind >= 0; ind--){
@@ -56,13 +63,12 @@ void Player::eliminatePiece(Piece* eliminatedPiece, size_t spaceInd)
                 triplets[ind][piece]->removeFromTriple();
             }
             triplets.remove(ind);
-
         }
     }
-    emit pieceRemoved(eliminatedPiece, spaceInd);
     currentPieces--;
-    delete eliminatedPiece;
     qDebug() << "Ended Piece removal un Player";
+    delete eliminatedPiece;
+    emit pieceRemoved(eliminatedPiece, spaceInd);
 
 }
 
@@ -100,6 +106,7 @@ void Player::finishMoving(Piece* movedPiece)
     }
 
     if (checkNewTriplet(movedPiece)){
+        attacking = true;
         emit eliminationStarts();
         return;
     }
@@ -111,6 +118,7 @@ void Player::finishMoving(Piece* movedPiece)
 void Player::finishElimination()
 {
     playing = false;
+    attacking = false;
     allPiecesProtected = true;
     for (int ind = 0; ind < pieces.size(); ind++){
         if (pieces[ind]->numberTriplets() == 0){
@@ -125,6 +133,13 @@ void Player::finishElimination()
 void Player::becomesAttacked()
 {
     underAttack = true;
+    for (int ind = 0; ind < pieces.size(); ind++){
+        if ((pieces[ind]->numberTriplets() > 0) && (!allPiecesProtected)){
+            continue;
+        }
+        pieces[ind]->setUnderAttack(true);
+        pieces[ind]->addAura(Qt::red);
+    }
 }
 
 bool Player::checkNewTriplet(Piece *movedPiece)

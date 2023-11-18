@@ -17,6 +17,7 @@ public:
 
     bool isPlaying() const {return playing;}
     bool isAttacked() const {return underAttack;}
+    bool isAttacking() const {return attacking;}
     bool moveIsAllowed(const Piece* piece, const size_t newSpaceInd, const size_t oldSpaceInd);
     bool hasAllTriplets() const {return allPiecesProtected;}
 
@@ -35,17 +36,22 @@ signals:
 
 private:
     Board* board;
+
     QList<Piece*> pieces;
+    QList<QList<Piece*>> triplets;
+
     QColor pieceColor;
+
     int maxPieces;
     int placedPieces;
     int currentPieces;
+
     bool playing;
     bool freeMoves;
     bool firstPhase;
     bool underAttack;
+    bool attacking;
     bool allPiecesProtected;
-    QList<QList<Piece*>> triplets;
 
     bool checkNewTriplet(Piece *movedPiece);
 };

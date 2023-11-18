@@ -27,6 +27,10 @@ public:
 
     void addToTriplet() {numTriplets++;}
     void removeFromTriple() {if (numTriplets > 0) numTriplets--;}
+    void setUnderAttack(bool attackable) {underAttack = attackable;}
+
+    void addAura(QColor color);
+    void removeAura();
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
@@ -36,18 +40,25 @@ protected:
 
 private:
 
-    QPixmap visual;
+    bool picked;
+    bool firstTurn;
+    bool underAttack;
+
+    QPixmap displayVisual;
+    QPixmap pieceVisual;
     QPoint oldPosition;
     QPointF relativeBoardPosition;
     Board* board;
-    bool picked;
+
     size_t spaceIndex;
     Player* player;
-    bool firstTurn;
+
     int numTriplets;
+    int pieceSize;
+    int imageSize;
 
     bool isValidPosition(QPoint targetPosition);
-    QPixmap createPixmap(int size, QColor color);
+    QPixmap createPixmap(QColor color);
 
 public slots:
     void resizePiecePosition();

@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QToolBar>
 
 class Board;
 
@@ -15,9 +16,15 @@ public:
 
 protected:
 
-private slots:
+public slots:
+    void startNewGame();
 
 private:
+    void createActions();
+    void createMenus();
+
+    QAction *restartAct;
+    QToolBar *options;
 
     Board *board;
 

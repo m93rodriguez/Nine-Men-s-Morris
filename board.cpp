@@ -26,7 +26,7 @@ Board::Board(QWidget *parent)
     std::setlocale(LC_NUMERIC, "en_US.UTF-8");
 
     //QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), QDir::currentPath());
-    QString fileName = "/home/martin/Projects/Nine-Men-s-Morris/Board_Config/Classic_Nine_Men_Morris_corrected.txt";
+    QString fileName = "../Board_Config/Classic_Nine_Men_Morris_corrected.txt";
 
     get_pieces_nodes_edges_from_file(fileName.toStdString());
     spacePieces = QList<Piece*>(relativeSpaces.size(), nullptr);
